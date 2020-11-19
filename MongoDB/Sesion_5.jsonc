@@ -1,0 +1,69 @@
+//Sesion 5
+
+//Reto 1
+//Usando la base de datos sample_airbnblistingsAndReviews, realiza los siguientes filtros:
+//Propiedades que no permitan fiestas.
+{
+    filter: {
+     house_rules: RegExp('no part(y|ies)', i)
+    }
+   }
+//Propiedades que admitan mascotas.
+{
+    filter: {
+     house_rules: RegExp('pets? allow(ed)?', i)
+    }
+   }
+//Propiedades que no permitan fumadores.
+{
+    filter: {
+     house_rules: RegExp('no smok', i)
+    }
+   }
+//Propiedades que no permitan fiestas ni fumadores.
+{
+    filter: {
+     $and: [
+      {
+       house_rules: RegExp('no smok', i)
+      },
+      {
+       house_rules: RegExp('no part', i)
+      }
+     ]
+    }
+   }
+
+//Reto 2
+//Usando la colección sample_airbnb.listingsAndReviews, agrega un filtro que permita obtener todas las publicaciones 
+//que tengan 50 o más comentarios, que la valoración sea mayor o igual a 80, que cuenten con conexión a Internet vía cable 
+//y estén ubicada en Brazil.
+{
+    filter: {
+     number_of_reviews: {
+      $gte: 50
+     },
+     'review_scores.review_scores_rating': {
+      $gte: 80
+     },
+     amenities: {
+      $in: [
+       RegExp('Ethernet', i)
+      ]
+     },
+     'address.country': 'Brazil'
+    }
+   }
+
+//Reto 3
+//Usando la colección sample_airbnb.listingsAndReviews, mediante el uso de agregaciones, encontrar el número de publicaciones que tienen conexión a Internet, sea desde Wifi o desde cable (Ethernet).
+[{
+    $match: {
+        amenities:{
+            $in: ["Wifi", "ethernet"]
+        } 
+    }
+}, {
+    $count: 'HousesWithInternet'
+    }
+]
