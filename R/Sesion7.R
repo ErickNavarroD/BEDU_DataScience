@@ -1,5 +1,9 @@
 #Reto 1 
 #Queries
+#Una vez hecha la conexión a la BDD, generar una busqueda con dplyr que devuelva el porcentaje de personas que hablan español en todos los países
+#Realizar una gráfica con ggplot que represente este porcentaje de tal modo que en el eje de las Y aparezca el país y en X el porcentaje, y que diferencíe
+#entre aquellos que es su lengua oficial y los que no con diferente color (puedes utilizar la geom_bin2d() y coord_flip())
+#Una vez hecho esto hacer el commit y push para mandar tu archivo al repositorio de Github Reto_Sesion_7
 
 install.packages("DBI")
 install.packages("RMySQL")
@@ -11,7 +15,7 @@ library(RMySQL)
 library(dplyr)
 library(ggplot2)
 
-#Nos conectamos a una base de datos
+#Nos conectamos a la base de datos
 MyDataBase <- dbConnect(
   drv = RMySQL::MySQL(),
   dbname = "shinydemo",
@@ -19,14 +23,16 @@ MyDataBase <- dbConnect(
   username = "guest",
   password = "guest")
 
-# Si no se arrojaron errores por parte de R, vamos a explorar la BDD
+#Explorar la BDD
 dbListTables(MyDataBase)
 
-# Ahora si se quieren desplegar los campos o variables que contiene la tabla 
-# City se hará lo siguiente
+# Desplegar los campos o variables que contiene la tabla CountryLanguage
 dbListFields(MyDataBase, 'CountryLanguage')
+
+#Seleccionar los hablantes de español
 DataDB <- dbGetQuery(MyDataBase, "select * from CountryLanguage where Language = 'Spanish'")
 
+#Graficar
 ggplot(DataDB, aes(x = CountryCode, y = Percentage))+
   geom_bar(stat = "identity") + 
   theme_classic() + 
