@@ -33,7 +33,7 @@ dbListFields(MyDataBase, 'CountryLanguage')
 DataDB <- dbGetQuery(MyDataBase, "select * from CountryLanguage where Language = 'Spanish'")
 
 #Graficar
-ggplot(DataDB, aes(x = CountryCode, y = Percentage))+
+ggplot(DataDB, aes(x = Percentage, y = CountryCode, fill = IsOfficial))+
   geom_bar(stat = "identity") + 
   theme_classic() + 
   ggtitle("Porcentaje de hablantes de español por pais")
