@@ -12,8 +12,8 @@
 - Agregaciones
 - Configuración de bases de datos
 
-## Módulo 2  
-**R**
+## Módulo 2 - R y Python
+**Estadística y programación con R**
 - Fundamentos
 - Manipulación de datos y EDA
 - Regresión lineal y pruebas estadísticas
@@ -23,4 +23,4 @@
 - GUI con Shiny
 
 
-**Python**
+**Procesamiento de datos con Python**
