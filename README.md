@@ -13,7 +13,7 @@
 - Configuración de bases de datos
 
 ## Módulo 2 - R y Python
-**Estadística y programación con R**
+[**Estadística y programación con R**](https://github.com/beduExpert/Programacion-con-R-Santander)
 - Fundamentos
 - Manipulación de datos y EDA
 - Regresión lineal y pruebas estadísticas
