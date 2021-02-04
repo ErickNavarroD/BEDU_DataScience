@@ -1,12 +1,12 @@
 # Programa de ciencia de datos de BEDU
 
 ## Módulo 1 - Bases de datos
-**SQL**
+[**SQL**](https://github.com/beduExpert/A1-Introduccion-a-Bases-de-Datos-Santander)
 - Fundamentos
 - Agrupaciones y subconsultas
 - Joints y views
 
-**MongoDB**
+[**MongoDB**](https://github.com/beduExpert/A1-Introduccion-a-Bases-de-Datos-Santander)
 - Fundamentos 
 - Consultas
 - Agregaciones
