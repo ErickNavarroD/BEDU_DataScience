@@ -1,6 +1,6 @@
 #Postworks
 #Trabajos para el curso de Data Science de BEDU; modulo de R
-#Equipo 25
+#Equipo 25: Andrés, Erick, José y Ricardo.
 
 #Postwork 1####
 #Importa los datos de soccer de la temporada 2019/2020 de la primera división de la liga española a R, los datos los puedes 
