@@ -1,4 +1,5 @@
 ## app.R ##
+#Equipo 25: Andrés, Erick, José y Ricardo.
 
 ## Dash board para el data set 'mtcars'
 
