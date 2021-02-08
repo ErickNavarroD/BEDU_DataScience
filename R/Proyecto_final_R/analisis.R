@@ -346,3 +346,181 @@ tab_cont = matrix(c(180,25,9,0),2,2,
 tab_cont
 #Prueba estadistica para ver independencia
 fisher.test(tab_cont)
+
+####Evaluacion de cobertura boscosa por pais####
+
+#Importar el dataset
+land_data = read.csv("LAND_USE_WORLD.csv") 
+
+#Seleccinar las variables de interes
+#'Area Code' codigo de pais. El codigo 5000 es del mundo y mayores de 5000 son por regiones (America, Europa, etc)
+#'Area' : Nombre del pais
+#''Item': Tipo de area (Forest, Land, Agricultural, etc.)
+#''Element': Seleccionar Area ya que hay otras como Carbon Stock
+#'Y1990:Y2018': Años del 1990 al 2018.
+
+library(tidyverse)
+land_data <- land_data %>% select(c('AreaCode',
+                                   'Area',
+                                   'Item',
+                                   'Element',
+                                   'Y1990':'Y2018'))
+
+#Seleccionar unicamente datos que contengan el atributo Forest Land en unidades HA
+
+land_data = filter(land_data, Item == 'Forest land', Element == 'Area')
+
+#Filtrar elementos que no son paises (AreaCode<5000)
+land_data <- land_data %>% filter(AreaCode < 5000)
+
+#Seleccionamos las columnas de interes
+land_data <- land_data %>% select(c('Area','Y1990':'Y2018'))
+
+library(reshape2)
+# install.packages('data.table')
+library(data.table)
+
+# Para cambiar el formato del data frame de columnas a filas.
+
+land_data <- melt(setDT(land_data),id.vars = 'Area', measure.vars = c(2:30))
+land_data <- land_data %>% rename('Country' = 'Area',
+                                  'Year' = 'variable',
+                                  'ForestLand' = 'value')
+
+#Eliminamos la Y antes del año
+land_data$Year <- as.numeric(sub('.', '', land_data$Year))
+
+#Crear df con el nombre de cada pais
+paises = unique(select(land_data, "Country"))
+
+#Crear df con el valor del area boscosa para cada pais en el año de 1990.
+bosque.1990 <- select(filter(land_data, Year == 1990), 'Country', 'ForestLand')
+bosque.1990 <- rename(bosque.1990, 'Forest1990' = 'ForestLand')
+
+land_data <- merge(land_data, bosque.1990)
+
+#Crear variable de interes: porcentaje de area boscosa respecto a 1990. 
+for (i in 1:nrow(land_data)){
+  land_data$porcent.bosque[i] <- land_data$ForestLand[i]/land_data$Forest1990[i]*100
+}
+
+#Crear lista de paises que no estan adscritos al acuerdo de Paris para el 2018 
+#Fuentes: https://www.climatechangenews.com/2020/08/13/countries-yet-ratify-paris-agreement/
+#https://treaties.un.org/pages/ViewDetails.aspx?src=TREATY&mtdsg_no=XXVII-7-d&chapter=27&clang=_en
+no_paris_agree = data.frame(country = c("Iran","Iraq", "Libya", "Yemen", "South Sudan", "Angola", "Turkey", "Russia", "Eritrea", "Nicaragua",
+                                        "Oman", "Suriname", "Kyrgyzstan", "Lebanon", "Burundi", "Colombia", "Trinidad and Tobago", "Tanzania",
+                                        "Uzbekistan", "Equatorial Guinea", "Guinea-Bissau", "Kuwait", "Liberia", "Mozambique", "North Macedonia"))
+
+#Seleccionamos unicamente las columnas que utilizaremos para trabajar y cambiamos formato
+library(reshape2)
+land_data <- land_data %>% select(Country, Year, porcent.bosque)
+
+#Agregar columna que diga si son miembros del acuerdo de paris a inicios del 2018
+land_data$Paris_agreement = !(land_data$Country %in% no_paris_agree$country)
+land_data$post_paris = land_data$Year > 2015
+
+#Verificar que no haya NAs en los datos que vamos a usar
+table(is.na(land_data))
+land_data <- na.omit(land_data)
+
+#Generar data frame resultado con el p.value de la prueba de si el cambio anual 
+#en area boscosa de los ultimos aÃ±os es menor al que se ha tenido desde la
+#revolucion industrial 
+resultado = data.frame()
+for (pais in paises$Country){
+  datos_pais = subset(land_data, land_data$Country == pais)
+  pre_paris = subset(datos_pais, post_paris == F)
+  post_paris = subset(datos_pais, post_paris == T)
+  tryCatch({
+    res_pval = t.test(pre_paris$porcent.bosque, post_paris$porcent.bosque, alternative = "less")$p.value
+    res_pais = data.frame(Country = pais, p.val_forest = res_pval)
+    resultado = rbind(resultado, res_pais)},error=function(e){})
+}
+
+#Agregar columna que indique si el aumento es significativo
+resultado$aumento = resultado$p.val_forest < 0.05
+
+#Generar data frame con los datos totales
+land_data <- subset(land_data, Country %in% resultado$Country)
+land_data <- right_join(land_data, resultado, by = "Country")
+
+#Agregar codigo iso a los paises y poblacion
+population <- read.csv('POPULATION_DATA.csv', fileEncoding="UTF-8-BOM")
+population <- population %>% select('Country','Code')
+
+land_data <- merge(land_data, population)
+
+#Graficar curvas de %area boscosa respecto a 1990
+library(ggplot2)
+
+dis.labs <- c("Tendencia postAP -/o", "Tendencia postAP +")
+names(dis.labs) <- c("FALSE", "TRUE")
+
+#install.packages('ggrepel')
+library(ggrepel)
+
+p<- ggplot(land_data, aes(x = Year, y =porcent.bosque, group = Country, colour = Paris_agreement, label = Code)) +
+  geom_line() + 
+  geom_label_repel(data = filter(land_data, Year == 2010), max.overlaps = getOption("ggrepel.max.overlaps", default = 50)) + #Agregar etiquetas
+  facet_wrap("aumento", labeller = labeller(aumento = dis.labs)) + #Dividir entre tendencias
+  theme_bw() + ggtitle("%Area  Boscosa por año respecto a 1990")+
+  xlab("Año")+ ylab("%Area") +
+  scale_color_discrete(name = "¿Estan en el Acuerdo de Paris?", labels = c("No", "Si"))
+
+p #+ coord_cartesian(ylim = c(70, 125))
+
+#Df con los paises que aumentaron su area boscosa respecto a 1990
+paises_incremento = subset(land_data, land_data$aumento ==T)
+
+
+#Graficar el mapa
+#install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
+                   #"ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
+#install.packages("rgeos")
+
+library("sf")
+library("rnaturalearth")
+library("rnaturalearthdata")
+library("sf")
+library("ggrepel")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+class(world)
+
+world_points<- st_centroid(world)
+world_points <- cbind(world, st_coordinates(st_centroid(world$geometry)))
+
+land_data <- rename(land_data, iso_a3 = Code)
+
+world = left_join(world, filter(land_data, Year =="2018"), by = 'iso_a3')
+ggplot(data = world) +
+  geom_sf(aes(fill = aumento)) + theme_bw() + 
+  geom_label_repel(data= subset(world_points, world_points$iso_a3 %in% unique(paises_incremento$Code)),aes(x=X, y=Y, label=name),
+                   color = "darkblue", fontface = "bold")+
+  xlab("Longitud") + ylab("Latitud") +
+  ggtitle("Tendencia anual de cambio en %Area boscosa respecto a 1990 postAP")+ 
+  scale_fill_discrete(name = "Tendencia de cambio postAP", labels = c("-/o", "+", "Sin Datos"))
+
+
+#Hacer prueba para ver si el tratado funciono
+#Ver paises con aumento y que esten en el tratado de paris (58 paises)
+nrow(subset(resultado, aumento ==T & !(Country %in% no_paris_agree$country)))
+#Ver paises sin aumento y que esten en el tratado de paris (85 paises)
+nrow(subset(resultado, aumento ==F & !(Country %in% no_paris_agree$country)))
+#Ver paises con aumento y que no esten en el tratado de paris (6 paises)
+nrow(subset(resultado, aumento ==T & Country %in% no_paris_agree$country))
+#Ver paises sin aumento y que no esten en el tratado de paris (10 paises)
+nrow(subset(resultado, aumento ==F & Country %in% no_paris_agree$country))
+
+#Se hace la tabla de contingencia
+tab_cont = matrix(c(58,85,6,10),2,2,
+                  dimnames = list(AcuerdoParis = c("si","no"),
+                                  Aumento = c("+","-/o")))
+tab_cont
+
+#Prueba estadistica para ver independencia
+fisher.test(tab_cont)
+
+#Se demuestra la independencia de las variables, por tanto, el tratado no ocasiono
+#un cambio para que los paises aumentaran su cobertura boscosa o disminuyeran
+#la deforestacion.
